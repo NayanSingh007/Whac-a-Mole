@@ -1,0 +1,181 @@
+C51 COMPILER V9.60.0.0   MAIN                                                              04/08/2021 22:51:20 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: G:\Semester4\EE 337 Microprocessors Lab\Keil 9.60a\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE 
+                    -DEBUG OBJECTEXTEND PRINT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <at89c5131.h>
+   2          #include "lcd.h"    //Header file with LCD interfacing functions
+   3          #include "serial.h" //C file with UART interfacing functions
+   4          
+   5          
+   6          char Score[2];
+   7          char HighScore[2];
+   8          char value[8];
+   9          int b = 5;
+  10          int a = 0;
+  11          int STOP = 0;
+  12          int Value10 = 400;
+  13          int t;
+  14          int SInt = 0;
+  15          int HInt = 0;
+  16          int i,j;
+  17          code unsigned char KM[] = "qwertyuiasdfghjk";
+  18          
+  19          void lcd_ready(void)
+  20          {
+  21   1         lcd_cmd(0x80);
+  22   1         lcd_write_string("   Get Ready  ");
+  23   1         msdelay(2000);
+  24   1         lcd_cmd(0x01);
+  25   1      }
+  26          
+  27          void lcd_score(void)
+  28          {
+  29   1         lcd_cmd(0x80);
+  30   1         lcd_write_string("Score:     ");
+  31   1         int_to_string(SInt,Score);
+  32   1         lcd_write_string(Score);
+  33   1         lcd_cmd(0x0C0);
+  34   1         lcd_write_string("High Score:");
+  35   1         int_to_string(HInt,HighScore);
+  36   1         lcd_write_string(HighScore);
+  37   1         msdelay(3000);
+  38   1         lcd_cmd(0x01);
+  39   1      }
+  40          
+  41          void Star1(void)
+  42          { 
+  43   1        lcd_cmd(0x80);
+  44   1        lcd_write_string("* * * * * * * * ");
+  45   1        lcd_cmd(0x0C0);
+  46   1        lcd_write_string("* * * * * * * * ");
+  47   1        msdelay(3000);
+  48   1        lcd_cmd(0x01);
+  49   1      }
+  50          
+  51          void Star2(int n)
+  52          {
+  53   1        lcd_cmd(0x80);
+  54   1        for(i=0;i<8;i++){
+C51 COMPILER V9.60.0.0   MAIN                                                              04/08/2021 22:51:20 PAGE 2   
+
+  55   2          if( i == n)
+  56   2          {
+  57   3            lcd_write_string("m ");
+  58   3          }
+  59   2          else
+  60   2          {
+  61   3            lcd_write_string("* ");
+  62   3          }
+  63   2        }
+  64   1        lcd_cmd(0x0C0);
+  65   1        for(j=8;j<16;j++){
+  66   2          if( j == n)
+  67   2          {
+  68   3            lcd_write_string("m ");
+  69   3          }
+  70   2          else
+  71   2          {
+  72   3            lcd_write_string("* ");
+  73   3          }
+  74   2        } 
+  75   1      }
+  76          
+  77          void MolePos(int *m)
+  78          {
+  79   1        /*a = 0;
+  80   1        t = *m;
+  81   1        a = ((t >> 3)&1)^((t & 1));
+  82   1        a = a << 1 ;
+  83   1        a = a | ((t >> 3)&1);
+  84   1        a = a << 1;
+  85   1        a = a | ((t >> 2)&1);
+  86   1        a = a << 1;
+  87   1        a = a | ((t >> 1)&1);
+  88   1        *m = (a);//%16;*/ 
+  89   1        t = *m;
+  90   1        a = ((t ^ (t << 3)) & 0x08) | ((t >> 1) & 0x07);
+  91   1        *m = (a + *m)%16;
+  92   1      }
+  93          
+  94          void GamePlay(void)
+  95          { 
+  96   1        lcd_ready();
+  97   1        Star1();
+  98   1        Star2(b);
+  99   1        TR0 = 1;
+ 100   1      }
+ 101          
+ 102          void Timer0(void) interrupt 1
+ 103          {
+ 104   1          TR0 = 0;
+ 105   1          if (Value10 == 0){
+ 106   2            STOP = 1;
+ 107   2          }
+ 108   1          else {
+ 109   2            TH0 = 0x3C;
+ 110   2            TL0 = 0xB0;
+ 111   2            Value10--;
+ 112   2            TR0 = 1;
+ 113   2          }   
+ 114   1      }
+ 115          
+ 116          //Main function
+C51 COMPILER V9.60.0.0   MAIN                                                              04/08/2021 22:51:20 PAGE 3   
+
+ 117          void main(void)
+ 118          {
+ 119   1        unsigned char ch=0;
+ 120   1        
+ 121   1        
+ 122   1        //Call initialization functions
+ 123   1        lcd_init();
+ 124   1        uart_init();
+ 125   1        
+ 126   1        //lcd_ready();
+ 127   1        GamePlay();
+ 128   1        
+ 129   1        
+ 130   1        while(1)
+ 131   1        {
+ 132   2              ch = receive_char();
+ 133   2              
+ 134   2              if (KM[b] == ch)
+ 135   2              {
+ 136   3                SInt++;
+ 137   3                MolePos(&b);
+ 138   3                Star2(b);
+ 139   3              
+ 140   3              }
+ 141   2              if (STOP == 1){
+ 142   3                STOP = 0;
+ 143   3                if(SInt > HInt){
+ 144   4                  HInt = SInt;
+ 145   4                }
+ 146   3                Value10 = 400;
+ 147   3                lcd_score();
+ 148   3                SInt = 0;
+ 149   3                GamePlay();
+ 150   3              }
+ 151   2        }
+ 152   1      }
+*** WARNING C291 IN LINE 80 OF main.c: not every exit path returns a value
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    940    ----
+   CONSTANT SIZE    =     79    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     30      17
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      2    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)
